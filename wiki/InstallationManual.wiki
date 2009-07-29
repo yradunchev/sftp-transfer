@@ -1,4 +1,4 @@
-#summary Installation manual
+#summary Provides installation instructions
 #labels Featured,Phase-Deploy,installation
 
 = Introduction =
@@ -11,10 +11,60 @@ For now, *the installation procedure probably only works on Ubuntu*, since that'
 
 The procedure should hopefully be detailed enough to understand what is going on.
 
+The *server* is the system _receiving the files_ to be processed. The *client* is the server or user _sending the files_.
 
-= Details =
+== General ==
 
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+Below, you'll need to do most actions as root. In Ubuntu, this means using the 'sudo' command. You can choose to run all commands as root (sudo -s), or prepend each command with the 'sudo' command. Example:
+
+{{{
+virtual@virtual-desktop:~$ sudo -s
+[sudo] password for virtual: *******
+root@virtual-desktop:~$ 
+}}}
+
+or:
+
+{{{
+virtual@virtual-desktop:~$ sudo apt-get install .....
+........
+virtual@virtual-desktop:~$ sudo apt-get install .....
+........
+etc.
+}}}
+
+
+== Prerequisites ==
+
+This section lists the prerequisites for installing it on your system. It is for now based on Ubuntu Linux, both for client and server. It is also assumed that both client and server set up the scripts through a scheduler such as cron.
+
+*Client*
+  * Base Ubuntu packages
+  * Open SSH client
+  * rssh package
+
+*Server*
+  * Base Ubuntu packages
+  * Open SSH server
+  * rssh package
+
+== Client installation ==
+
+On the client, install the Open SSH client and the rssh client. The following steps show you how to do this on Ubuntu:
+
+  * apt-get install openssh-client
+  * apt-get install rssh
+
+The rssh package will also install openssh-server on Ubuntu.
+
+== Server installation == 
+
+On the server, install the OpenSSH server and the rssh client. The following steps show you how to do this on Ubuntu:
+
+  * apt-get install openssh-server
+  * apt-get install rssh
+
+The packages are now installed, but not yet properly configured. Please see the architecture for details on what we're trying to achieve next.
+
+
+
