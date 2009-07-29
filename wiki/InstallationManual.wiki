@@ -227,3 +227,43 @@ bob@myserver:~$ exit
 }}}
 
 The last one shows that it's still possible to log in as bob, which isn't really what we want. People could abuse the account for other purposes. So you could secure the account further using a jail (chroot), such that the logged in user can never access the major part of the system and remains constricted to a controlled area.
+
+== Securing bob through chroot ==
+
+I've got this method from: http://ubuntuforums.org/showthread.php?t=128206
+
+The following changes are quite specific for this setup. If you follow other policies or want to change directories, feel free to do so.
+
+Let's get started on this. Assuming you're not using specific configurations for rssh already, let's create a backup first and start editing it. We only need to make changes on the server:
+
+{{{
+root@myserver:~$ cd /etc
+root@myserver:/etc$ cp rssh.conf rssh.orig.conf
+root@myserver:/etc$ vi rssh.conf
+}}}
+
+Then uncomment the allow* lines to set up specific process types. For sftp, we need to uncomment the line:
+
+'# allowsftp'
+
+Also, the chrootpath should be set to '/home/bob'.
+
+See the above tutorial link for more information on securing this environment better.  In short, the "PermitUserEnvironment" parameter should be set to "no" in the sshd configuration file.
+
+Ubuntu comes with a standard 'mkchroot' package. This package is a shell script to very quickly set up the necessary binaries and directory structure to allow this user to become jailed.
+
+On my machine and the newest Ubuntu, this file is already unpacked and can be used as follows:
+
+{{{
+root@myserver:~$ cp /usr/share/doc/rssh/examples/mkchroot.sh /home/bob
+root@myserver:~$ cd /home/bob
+root@myserver:/home/bob$ vi mkchroot.sh
+}}}
+
+Before using this script, check the paths somewhere down the middle are correct. you can check the correctness by the 'rssh -v' command:
+
+'rssh -v'
+
+
+
+There are
