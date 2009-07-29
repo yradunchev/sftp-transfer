@@ -18,20 +18,22 @@ The *server* is the system _receiving the files_ to be processed. The *client* i
 Below, you'll need to do most actions as root. In Ubuntu, this means using the 'sudo' command. You can choose to run all commands as root (sudo -s), or prepend each command with the 'sudo' command. Example:
 
 {{{
-virtual@virtual-desktop:~$ sudo -s
+alice@:~$ sudo -s
 [sudo] password for virtual: *******
-root@virtual-desktop:~$ 
+root@:~$ 
 }}}
 
 or:
 
 {{{
-virtual@virtual-desktop:~$ sudo apt-get install .....
+alice@:~$ sudo apt-get install .....
 ........
-virtual@virtual-desktop:~$ sudo apt-get install .....
+alice@:~$ sudo apt-get install .....
 ........
 etc.
 }}}
+
+I like to _sudo -s_ to root mostly, so this tutorial assumes that. Don't forget to _exit_ back to a normal user after configuration is complete, as small mistakes can seriously damage your system.
 
 
 == Prerequisites ==
@@ -52,8 +54,10 @@ This section lists the prerequisites for installing it on your system. It is for
 
 On the client, install the Open SSH client and the rssh client. The following steps show you how to do this on Ubuntu:
 
-  * apt-get install openssh-client
-  * apt-get install rssh
+{{{
+root@myclient:~$ apt-get install openssh-client
+root@myclient:~$ apt-get install rssh
+}}}
 
 The rssh package will also install openssh-server on Ubuntu.
 
@@ -61,10 +65,78 @@ The rssh package will also install openssh-server on Ubuntu.
 
 On the server, install the OpenSSH server and the rssh client. The following steps show you how to do this on Ubuntu:
 
-  * apt-get install openssh-server
-  * apt-get install rssh
+{{{
+root@myserver:~$ apt-get install openssh-server
+root@myserver:~$ apt-get install rssh
+}}}
 
-The packages are now installed, but not yet properly configured. Please see the architecture for details on what we're trying to achieve next.
+The packages are now installed, but not yet properly configured. Please see the architecture for details on what we're trying to achieve in total.
 
 
+== Setting up accounts ==
 
+You need three different accounts in total. One account on the client machine and two accounts on the server machine. The following process describes how to organize user privileges, groups and other stuff in order to use the scripts properly. Make sure that you generate good passwords before creating the accounts, or just use one strong password for all accounts together to make them easier to manage.
+
+_We'll call the client user *alice*, the server restricted user *bob* and the server application user *zoe*._
+
+_The client and server machine are called *myclient* and *myserver* respectively._
+
+Let's create the user to send the files from on the client machine. On Ubuntu:
+
+{{{
+root@myclient:~$ useradd -d /home/alice -m -s /bin/bash alice
+root@myclient:~$ passwd alice
+Enter new UNIX passwd: *****
+Retype new UNIX passwd: *****
+passwd: password updated successfully.
+root@myclient:~$ chmod o-rwx /home/alice
+}}}
+
+Let's create the two accounts on the server machine:
+
+{{{
+root@myserver:~$ useradd -d /home/bob -m -s /bin/bash bob
+root@myserver:~$ useradd -d /home/zoe -m -s /bin/bash zoe
+root@myserver:~$ passwd bob
+Enter new UNIX passwd: *****
+Retype new UNIX passwd: *****
+passwd: password updated successfully.
+root@myserver:~$ passwd zoe
+Enter new UNIX passwd: *****
+Retype new UNIX passwd: *****
+passwd: password updated successfully.
+root@myserver:~$ chmod o-rwx /home/bob
+root@myserver:~$ chmod o-rwx /home/zoe
+}}}
+
+
+== Basic validation and verification ==
+
+You should now be able to rssh and ssh into each separate system from your shell. Let's verify the setup now, so that if we run into any strange stuff, we localize it now. *Pay attention to the user that's issuing the commands for each block of code*
+
+For the following commands, since you have never connected to this host before, the SSH authentication process sends out the public key of the host you're connecting to. You, as a user (or pretending to be a user), can choose to accept the user's claimed identity and add it to your known hosts file. Any connections in the future you make against the same machine can then be validated against this public key.
+
+For the purpose of this exercise, you don't need to store the key, so you can reply "no". 
+
+{{{
+alice@:~$ ssh bob@myserver
+< ... messages ... >
+virtual@localhost's password: 
+}}}
+
+Supply your remote password as if you log in from anywhere else and you should have a shell to the box. Verify the environment if you like before we continue.
+
+{{{
+alice@:~$ rssh bob@myserver
+< .... account is restricted message ... > 
+}}}
+
+On standard Ubuntu machines, the only way that rssh can be used is through scp. That is what the message says anyway. But we've validated that things are likely working. We'll reconfigure the services now such that we can use it for our purposes.
+
+{{{
+alice@:~$ sftp bob@myserver
+< .... account is restricted message ... > 
+}}}
+
+
+== Configuration of sftp ==
