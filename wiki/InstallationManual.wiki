@@ -212,7 +212,7 @@ root@myclient:/etc/ssh$ # vi sshd_config
 
 Then uncomment the line:
 
-'IdentityFile ~/.ssh/id_dsa'
+ 'IdentityFile ~/.ssh/id_dsa'
 
 This should really be it. Before this public/private key authentication, we could only get authenticated through a username/password combination. But now, if we're logged in as alice (since alice's home area contains her .ssh/id_dsa file), we can log in to the server machine as bob and it will recognize alice immediately. Notice that other users cannot log in 'quietly' as such and will still require to type a password.
 
@@ -244,7 +244,7 @@ root@myserver:/etc$ vi rssh.conf
 
 Then uncomment the allow* lines to set up specific process types. For sftp, we need to uncomment the line:
 
-'# allowsftp'
+ '# allowsftp'
 
 Also, the chrootpath should be set to '/home/bob'.
 
@@ -262,8 +262,37 @@ root@myserver:/home/bob$ vi mkchroot.sh
 
 Before using this script, check the paths somewhere down the middle are correct. you can check the correctness by the 'rssh -v' command:
 
-'rssh -v'
+ 'rssh -v'
+
+If things are ok, let's jail /home/bob, make it a chrooted directory, add rssh as a valid shell and setuid the chroot helper as root (wew!):
+
+{{{
+root@myserver:/home/bob$ chmod u+x mkchroot.sh
+root@myserver:/home/bob$ ./mkchroot.sh /home/bob
+root@myserver:/home/bob$ add-shell rssh
+root@myserver:/home/bob$ chmod u+s /usr/lib/rssh/rssh_chroot_helper
+root@myserver:/home/bob$ ln /home/bob/usr/lib/openssh/sftp-server /home/bob/usr/lib/
+}}}
+
+Next, change bob to use the rssh shell:
+
+{{{
+root@myserver:/home/bob$ cd etc
+root@myserver:/home/bob/etc$ vi passwd
+root@myserver:/home/bob$ cd etc
+root@myserver:/etc$ vi passwd
+root@myserver:/etc$ /etc/init.d/ssh reload
+}}}
+
+Yes, this happens in two files. The chrooted one now has a copy, where the line: 
+
+ 'bob:x:1111:1111::/home/bob:/bin/bash'
+
+should read:
+
+ 'bob:x:1111:1111::/home/bob:/usr/bin/rssh'
 
 
 
-There are
+
+
