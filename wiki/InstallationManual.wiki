@@ -1,0 +1,20 @@
+#summary Installation manual
+#labels Featured,Phase-Deploy,installation
+
+= Introduction =
+
+This is the installation manual for the scripts. Probably, you'll want to be a server admin or developer or other geeky computer user to understand this page.
+
+This page explains, step-by-step, how to make adjustments to your system to use the scripts effectively and securely. 
+
+For now, *the installation procedure probably only works on Ubuntu*, since that's my method of choice.
+
+The procedure should hopefully be detailed enough to understand what is going on.
+
+
+= Details =
+
+Add your content here.  Format your content with:
+  * Text in *bold* or _italic_
+  * Headings, paragraphs, and lists
+  * Automatic links to other wiki pages
