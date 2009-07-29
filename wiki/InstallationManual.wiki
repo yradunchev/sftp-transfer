@@ -162,7 +162,7 @@ sftp>
 
 So that works. Cool. We're now ready to make things more secure.
 
-== Securing sftp ==
+== Adding an automatic login method for sftp processes on the bob account ==
 
 Alice has an account on a client machine and wants to gain temporary access to some 3rd party secured account on some server machine to dump files on. We shouldn't want a third party to generate keys for us, because we don't have full visibility how the other party has their key management set up. So, basically:
 
@@ -227,4 +227,3 @@ bob@myserver:~$ exit
 }}}
 
 The last one shows that it's still possible to log in as bob, which isn't really what we want. People could abuse the account for other purposes. So you could secure the account further using a jail (chroot), such that the logged in user can never access the major part of the system and remains constricted to a controlled area.
-
