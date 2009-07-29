@@ -109,6 +109,26 @@ root@myserver:~$ chmod o-rwx /home/bob
 root@myserver:~$ chmod o-rwx /home/zoe
 }}}
 
+Ok, this is fine for a basic setup. You can try to log in to these accounts from any other account, as long as you know the password and you're not logged in as root. That'll tell you whether the accounts actually work for a login:
+
+{{{
+anyuser@myclient:~$ su - alice
+Password: *****
+alice@myclient:~$
+}}}
+
+and: 
+
+{{{
+anyuser@myserver:~$ su - bob
+Password: *****
+bob@myserver:~$ exit
+anyuser@myserver:~$ su - zoe
+Password: *****
+zoe@myserver:~$ exit
+}}}
+
+Actually, the bob user still has too many privileges and isn't set up properly for the sftp process. We'll work on that later. For now, we keep the account as is, since a couple of things still need to happen and having a bash shell and login make it easier to test the setup.
 
 == Basic validation and verification ==
 
@@ -119,7 +139,7 @@ For the following commands, since you have never connected to this host before, 
 For the purpose of this exercise, you don't need to store the key, so you can reply "no". 
 
 {{{
-alice@:~$ ssh bob@myserver
+alice@myclient:~$ ssh bob@myserver
 < ... messages ... >
 virtual@localhost's password: 
 }}}
@@ -127,16 +147,84 @@ virtual@localhost's password:
 Supply your remote password as if you log in from anywhere else and you should have a shell to the box. Verify the environment if you like before we continue.
 
 {{{
-alice@:~$ rssh bob@myserver
+alice@myclient:~$ rssh bob@myserver
 < .... account is restricted message ... > 
 }}}
 
 On standard Ubuntu machines, the only way that rssh can be used is through scp. That is what the message says anyway. But we've validated that things are likely working. We'll reconfigure the services now such that we can use it for our purposes.
 
 {{{
-alice@:~$ sftp bob@myserver
-< .... account is restricted message ... > 
+alice@myclient:~$ sftp bob@myserver
+Connecting to myserver...
+bob@myserver password: *****
+sftp> 
 }}}
 
+So that works. Cool. We're now ready to make things more secure.
 
-== Configuration of sftp ==
+== Securing sftp ==
+
+Alice has an account on a client machine and wants to gain temporary access to some 3rd party secured account on some server machine to dump files on. We shouldn't want a third party to generate keys for us, because we don't have full visibility how the other party has their key management set up. So, basically:
+
+  # alice generates keys
+  # alice shares her public key with the remote system
+  # the admin at the other end adds alice's key to the store of authorized keys for the secured user 
+  # the server machine can now authenticate alice by her public key and gives alice access to bob's account.
+
+
+Let's generate a private/public keypair for alice first. We won't use a password protected private key, because we're trying to automate this. If in your case this scenario is different, do add a password.
+
+{{{
+alice@myclient:~$ ssh-keygen -t dsa -f ~/.ssh/id_dsa
+< created directory ... >
+< Enter passphrase: >
+< Enter same passphrase again: >
+< ... blurb ... >
+alice@myclient:~$ cd .ssh
+alice@myclient:~/.ssh$ ls -al
+< ... id_dsa >
+< ... id_dsa.pub >
+}}}
+
+The .pub file is the public key, the other the private.
+
+Let's transfer this id_dsa.pub file to the server machine as follows. It's probably best to give a good name to the file, so it doesn't accidently overwrite anything:
+
+{{{
+alice@myclient:~$ cd .ssh
+alice@myclient:~/.ssh$ cp id_dsa.pub id_dsa_alice.pub
+}}}
+
+Then copy the file over to the server. Let's put the file in bob's home directory for now and make it readable for bob. Then log in as bob:
+
+{{{
+bob@myserver:~$ mkdir .ssh
+bob@myserver:~$ cat id_dsa_alice.pub >> ~/.ssh/authorized_keys
+bob@myserver:~$ chmod 600 ~/.ssh/authorized_keys
+}}}
+
+Then, we need to change the configuration slightly on the client machine to set up SSH client processes to attempt authentication through the identity file. On my machine, I couldn't find this file, but some people say it should be there in the config:
+
+{{{
+root@myclient:~$ cd /etc/ssh
+root@myclient:/etc/ssh$ # vi sshd_config
+}}}
+
+Then uncomment the line:
+
+'IdentityFile ~/.ssh/id_dsa'
+
+This should really be it. Before this public/private key authentication, we could only get authenticated through a username/password combination. But now, if we're logged in as alice (since alice's home area contains her .ssh/id_dsa file), we can log in to the server machine as bob and it will recognize alice immediately. Notice that other users cannot log in 'quietly' as such and will still require to type a password.
+
+{{{
+alice@myclient:~$ sftp bob@myserver
+Connecting to myserver...
+sftp> exit
+alice@myclient:~$ ssh bob@myserver
+Connecting to myserver...
+< ... motd blurb ... >
+bob@myserver:~$ exit
+}}}
+
+The last one shows that it's still possible to log in as bob, which isn't really what we want. People could abuse the account for other purposes. So you could secure the account further using a jail (chroot), such that the logged in user can never access the major part of the system and remains constricted to a controlled area.
+
