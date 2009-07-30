@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # import generic functions for receipt and send processing
-source ./response_gen_functions.sh
+source ./transfer_gen_functions.sh
 
 # ========================================================
 # Change the following configuration according to your needs
