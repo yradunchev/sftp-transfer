@@ -38,7 +38,7 @@ The source side of the transfer uses a number of directories for file management
 The destination side uses two separate accounts for processing. One account is set up for secure transfer only and receiving the files in an inbox. Another account is used to extract the files from the inbox and move it elsewhere for further processing.
 
 ||Sub directory name||Purpose||
-||/home/<username>/inbox||The inbox where the sftp server processes stores the files that are sent by the source server||
+||/home/'<'username'>'/inbox||The inbox where the sftp server processes stores the files that are sent by the source server||
 ||available||A directory on the second account where the files from the inbox are copied to, once the files have completely been transferred.||
 ||log||The log files for the destination process.||
 
