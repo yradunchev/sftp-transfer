@@ -388,7 +388,7 @@ The steps are as follows. We'll be using zoe's home directory to demonstrate the
 {{{
 zoe@myserver:~$ cp /<path-to-download>/sftp-transfer/general-scripts/transfer-gen-functions.sh ./
 zoe@myserver:~$ cp /<path-to-download>/sftp-transfer/receive-scripts/transfer-receive.sh ./
-zoe@myserver:~$ chmod u+x transfer_*
+zoe@myserver:~$ chmod u+x transfer-*
 zoe@myserver:~$ mkdir log
 zoe@myserver:~$ mkdir available
 zoe@myserver:~$ ls -R .
@@ -409,6 +409,7 @@ Now, the user bob needs one directory where files are copied to from the client.
 root@myserver:~$ cd /home/bob/home/bob
 root@myserver:/home/bob/home/bob$ mkdir inbox
 root@myserver:/home/bob/home/bob$ chown bob:bob inbox
+root@myserver:/home/bob/home/bob$ chmod g+w inbox
 root@myserver:/home/bob/home/bob$ groups zoe
 zoe
 root@myserver:/home/bob/home/bob$ usermod --groups bob -a zoe
@@ -432,4 +433,130 @@ Good, so we've got the server end working. Let's set up the client end now.
 
 == Setting up scripts on the client ==
 
+Login as alice on the client. Alice will be the user / process which frequently transmits files to another server using the client scripts. You determine the schedule using the cron jobs.
 
+We'll do the following:
+
+ # Copy alice's scripts to her home directory
+ # Set execute permissions
+ # Create alice's directories
+ # Set read permissions for all others
+ # Test the scripts are working properly
+
+{{{
+alice@myclient:~$ cp /<path-to-download>/sftp-transfer/general-scripts/transfer-gen-functions.sh ./
+alice@myclient:~$ cp /<path-to-download>/sftp-transfer/send-scripts/transfer-send.sh ./
+alice@myclient:~$ chmod u+x transfer-*
+alice@myclient:~$ mkdir outbox
+alice@myclient:~$ mkdir log
+alice@myclient:~$ mkdir processing
+alice@myclient:~$ mkdir control
+alice@myclient:~$ mkdir error
+alice@myclient:~$ mkdir archive
+alice@myclient:~$ chmod -R o-rwx .
+}}}
+
+We should now be able to send files across. The 'outbox' directory is the directory where other processes should dump files in to be sent over. Preferably, any other process uses the 'mv' command for putting the file there, where the source and destination directory are on the same drive.
+
+This send script however will verify if the file is closed and not in use by any other process before it attempts to pick up the file.
+
+Sanity checks:
+
+{{{
+alice@myclient:~$ ls -R
+.:
+archive  control  error  log  outbox  processing  transfer_gen_functions.sh  transfer_send.sh
+
+./archive:
+
+./control:
+
+./error:
+
+./log:
+
+./outbox:
+
+./processing:
+
+alice@myclient:~$ ./transfer_send.sh
+alice@myclient:~$ cat log/*
+Starting script @ 12:41:34
+Processing files in /home/alice/outbox
+Script exited @ 12:41:34 with retval: 0
+alice@myclient:~$ rm -f log/*
+alice@myclient:~$ touch outbox/testfile
+alice@myclient:~$ ./transfer_send.sh 
+alice@myclient:~$ cat log/*
+Starting script @ 12:43:16
+Processing files in /home/alice/outbox
+sftp> cd inbox
+sftp> put /home/alice/processing/testfile
+Uploading /home/alice/processing/testfile to /home/bob/inbox/testfile
+sftp> put /home/alice/control/control_testfile
+Uploading /home/alice/control/control_testfile to /home/bob/inbox/control_testfile
+removing /home/alice/processing/testfile
+Script exited @ 12:43:16 with retval: 0
+alice@recife:~$ ls -R
+.:
+archive  control  error  log  outbox  processing  transfer_gen_functions.sh  transfer_send.sh
+
+./archive:
+testfile
+
+./control:
+
+./error:
+
+./log:
+20090730_124316
+
+./outbox:
+
+./processing:
+root@myserver:/home/bob/home/bob/inbox# ls -R
+.:
+control_testfile  testfile
+zoe@myserver:~$ ./transfer_receive.sh 
+zoe@myserver:~$ ls -R
+.:
+available  log  transfer_gen_functions.sh  transfer_receive.sh
+
+./available:
+testfile
+
+./log:
+20090730_124833
+zoe@myserver:~$ cat log/*
+Starting script @ 12:48:33
+Processing files in /home/bob/home/bob/inbox
+Script exited @ 12:48:33 with retval: 0
+}}}
+
+Ok, so that's basically done. Congratulations, you can now already transfer files from one system to another in a very managed way by just dropping files into directories.
+
+== Setting up cron jobs ==
+
+Now for scheduling the transfers. This depends on your requirements, file sizes, etc. how you want to set this up. See http://en.wikipedia.org/wiki/Cron for easy setup details. Let's start with zoe, then do alice. I'm specifying a run of every minute so that it's possible to verify the crons can be run by the cron daemon. Afterwards, you should change this to the required frequency.
+
+First we set up the crontab, then verify the script was executed by inspecting the 'log' directories of zoe and alice. If log files accumulate, we've got a winner. For a final verification, inspect the contents of the latest log messages just to be sure.
+
+{{{
+zoe@myserver:~$ crontab -e
+zoe@myserver:~$ crontab -l
+# m h  dom mon dow   command
+* * * * * /home/zoe/transfer_receive.sh
+alice@myclient:~$ crontab -e
+alice@myclient:~$ crontab -l
+# m h  dom mon dow   command
+* * * * * /home/alice/transfer_send.sh
+
+.. wait a minute ...
+
+alice@myclient:~$ ls log/*
+< log files created every minute >
+zoe@myserver:~$ ls log/*
+< log files created every minute >
+}}}
+
+*DONE!*
