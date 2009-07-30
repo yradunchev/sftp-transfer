@@ -6,9 +6,9 @@ source ./transfer_gen_functions.sh
 # ========================================================
 # Change the following configuration according to your needs
 # ========================================================
-INBOX=/home/response/home/response/inbox
+INBOX=/home/bob/home/bob/inbox
 LOGFILE=`date '+%Y%m%d_%H%M%S'`
-LOCALDIR=/home/cl/scripts
+LOCALDIR=/home/zoe
 
 # ========================================================
 # DO NOT CHANGE anything below this line
