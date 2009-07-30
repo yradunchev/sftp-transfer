@@ -6,7 +6,7 @@ source ./transfer_gen_functions.sh
 # ========================================================
 # Change the following configuration according to your needs
 # ========================================================
-USER=response
+USER=bob
 HOST=localhost
 LOCALDIR=/home/alice
 REMOTEDIR=inbox
