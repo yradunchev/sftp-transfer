@@ -8,7 +8,7 @@ source ./transfer_gen_functions.sh
 # ========================================================
 USER=response
 HOST=localhost
-LOCALDIR=/home/virtual/scripts
+LOCALDIR=/home/alice
 REMOTEDIR=inbox
 LOGFILE=`date '+%Y%m%d_%H%M%S'`
 
