@@ -58,6 +58,14 @@ script_ret_val=0
 # Now process each file and ensure it was sent ok.
 for file in `find $PROCDIR -type f`
 do
+	lsof -w > /dev/null 2>&1 $file
+	RETVAL=$?
+
+	if [ "${RETVAL}" -eq "0" ]; then
+		# file is in use, so don't copy yet.
+		continue
+	fi
+
 	FILENAME=`basename "$file"`
 	sftp -b $CONTROLDIR/commands_$FILENAME $USER@$HOST
 	check_error $? "Failed SFTP operation for $FILENAME"
