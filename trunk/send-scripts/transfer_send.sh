@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # $LastChangedDate$
-# $Rev$
+# $Revision$
 
 # import generic functions for receipt and send processing
 source ./transfer_gen_functions.sh
