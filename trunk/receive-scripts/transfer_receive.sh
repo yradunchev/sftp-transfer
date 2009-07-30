@@ -41,7 +41,7 @@ do
 	CONTROL_FILE=`basename "$file"`
 	DATA_FILE=${CONTROL_FILE#control_}
 
-	mv "$INBOX/$DATA_FILE" "$AVAILABLEDIR/$DATA_FILE"
+	mv -f "$INBOX/$DATA_FILE" "$AVAILABLEDIR/$DATA_FILE"
 	check_error $? "Could not move $INBOX/$DATA_FILE to $AVAILABLEDIR/$DATA_FILE"
 	ret_val=$?
 	if [ "$ret_val" -ne "0" ]; then
