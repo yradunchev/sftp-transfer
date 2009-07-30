@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# $LastChangedDate$
+# $Rev$
+
 # Checking for errors function
 check_error() {
     if [ "${1}" -ne "0" ]; then
