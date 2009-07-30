@@ -302,6 +302,9 @@ root@myserver:/home/bob$ mkdir -p /home/bob/home/bob
 root@myserver:/home/bob$ mv .ssh/ home/bob
 root@myserver:/home/bob$ add-shell /usr/bin/rssh
 root@myserver:/home/bob$ chmod u+s /usr/lib/rssh/rssh_chroot_helper
+root@myserver:/home/bob$ chown -R root:root home
+root@myserver:/home/bob$ chown -R bob:bob home/bob
+root@myserver:/home/bob$ chmod o-rwx home/bob
 }}}
 
 We've now made a number of changes to the system. Before attempting the log in, let's ensure that we're getting error output to the syslog, just in case something failed. For this reason, we're using an "-a" flag on the syslog, which opens another _socket_ that the system logger will listen to. See 'man sysklogd' for details. The configuration for the sysklogd on Ubuntu is done through /etc/default. Other locations may exist on other distributions.
@@ -363,3 +366,70 @@ Then check for any messages on the root tail shell. You should just see messages
 Other users can still log in because the system also allows password authentication. You could set 'PasswordAuthentication no' in the sshd_config file to disable this if you only want people to be able to login through the key authentication method. 
 
 There are plenty of other tweaks possible that are far beyond the scope of this installation manual. You should be able to find lots of information about those.
+
+_You should also verify that you are in the /home/bob/home/bob directory when you login through sftp and not the chroot jail /home/bob_.
+
+= Installing scripts =
+
+It's finally time to install the scripts, now that everything is working. This section shows you which scripts go where, how to set up the directory structures and how to set up the cron jobs so that the scripts get called frequently.
+
+== Setting up scripts on the server ==
+
+Log in as zoe on the server. This is the user that picks up the files from the chroot jail and moves them to another area on your server for processing. This move uses the 'mv' command, because this command doesn't require extra disk space and is much less likely to fail than a complete 'copy' operation. For this reason, you want to make sure the source and destination directories are on the same drive!
+
+If 'cp' were used explicitly, it'd always perform a copy, thus copying bytes to a new file on another system. This means that a copy failure might leave around unfinished files in the target directory. Also, a copy might take a bit of time and any further processes might start picking up incomplete files. The 'mv' command is instantaneous, as long as it's executed with source and destination on the same drive.
+
+The steps are as follows. We'll be using zoe's home directory to demonstrate the installation:
+
+ # Install the receive and general functions script in zoe's home directory.
+ # Set the execution permissions for zoe.
+ # Create zoe's directories.
+
+{{{
+zoe@myserver:~$ cp /<path-to-download>/sftp-transfer/general-scripts/transfer-gen-functions.sh ./
+zoe@myserver:~$ cp /<path-to-download>/sftp-transfer/receive-scripts/transfer-receive.sh ./
+zoe@myserver:~$ chmod u+x transfer_*
+zoe@myserver:~$ mkdir log
+zoe@myserver:~$ mkdir available
+zoe@myserver:~$ ls -R .
+.:
+available  log  transfer_gen_functions.sh  transfer_receive.sh
+
+./available:
+
+./log:
+
+}}}
+
+_*If you're using different directories, change the configuration in the "transfer_receive.sh" script at the top of the file.*_
+
+Now, the user bob needs one directory where files are copied to from the client. Since bob cannot log in (it has the rssh shell), root should create the inbox for bob and set the required permissions. Note that I chose to add zoe to the "bob" group to give access to the inbox. There are very likely alternatives for setting this up differently:
+
+{{{
+root@myserver:~$ cd /home/bob/home/bob
+root@myserver:/home/bob/home/bob$ mkdir inbox
+root@myserver:/home/bob/home/bob$ chown bob:bob inbox
+root@myserver:/home/bob/home/bob$ groups zoe
+zoe
+root@myserver:/home/bob/home/bob$ usermod --groups bob -a zoe
+root@myserver:/home/bob/home/bob$ groups zoe
+zoe bob
+}}}
+
+You may need to re-login after these changes to zoe, as any open shells don't pick up these changes automatically. Close the shell and log back in as zoe. Let's confirm we've got the right permissions set up. The next commands are sanity checks for zoe. Note that the 
+
+{{{
+zoe@myserver:~$ groups
+zoe bob
+zoe@myserver:~$ ./transfer_receive.sh
+zoe@myserver:~$ cat log/*
+Starting script @ 12:24:28
+Processing files in /home/bob/home/bob/inbox
+Script exited @ 12:24:28 with retval: 0
+}}}
+
+Good, so we've got the server end working. Let's set up the client end now.
+
+== Setting up scripts on the client ==
+
+
