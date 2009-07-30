@@ -141,7 +141,7 @@ For the purpose of this exercise, you don't need to store the key, so you can re
 {{{
 alice@myclient:~$ ssh bob@myserver
 < ... messages ... >
-virtual@localhost's password: 
+bob@myserver's password: 
 }}}
 
 Supply your remote password as if you log in from anywhere else and you should have a shell to the box. Verify the environment if you like before we continue.
@@ -182,8 +182,9 @@ alice@myclient:~$ ssh-keygen -t dsa -f ~/.ssh/id_dsa
 < ... blurb ... >
 alice@myclient:~$ cd .ssh
 alice@myclient:~/.ssh$ ls -al
-< ... id_dsa >
-< ... id_dsa.pub >
+-rw------- 1 alice alice  999 YYYY-MM-DD HH:MM id_dsa
+-rw-r--r-- 1 alice alice  999 YYYY-MM-DD HH:MM id_dsa.pub
+alice@myclient:~/.ssh$ 
 }}}
 
 The .pub file is the public key, the other the private.
@@ -221,18 +222,24 @@ alice@myclient:~$ sftp bob@myserver
 Connecting to myserver...
 sftp> exit
 alice@myclient:~$ ssh bob@myserver
-Connecting to myserver...
-< ... motd blurb ... >
+Linux xxxxxx 2.6.27-7-generic #1 SMP <date> i686
+
+<motd blurb>
+
 bob@myserver:~$ exit
 }}}
 
-The last one shows that it's still possible to log in as bob, which isn't really what we want. People could abuse the account for other purposes. So you could secure the account further using a jail (chroot), such that the logged in user can never access the major part of the system and remains constricted to a controlled area.
+Notice how, when connecting through alice, the machine didn't request a password. Trying to log in from any other user however, the password is requested (try it out!).
+
+The last one shows that it's still possible to log in as bob, which isn't normally what we want. Also, if you're allowing third parties to upload data or content through sftp, you don't want to potentially give them access to the entire machine. People could abuse the account for other purposes or read data in other directories from other third parties. 
+
+So you could secure the account further using a jail (chroot), such that the logged in user can never access the major part of the system and remains constricted to a controlled area. This step however is *_optional_*.
 
 == Securing bob through chroot ==
 
 I've got this method from: http://ubuntuforums.org/showthread.php?t=128206
 
-The following changes are quite specific for this setup. If you follow other policies or want to change directories, feel free to do so.
+The following changes are quite specific for this setup and Ubuntu, so it's very likely it won't work for your machine. I hope there are other tutorials on chroot-ing sftp for your setup that you can use in that case.
 
 Let's get started on this. Assuming you're not using specific configurations for rssh already, let's create a backup first and start editing it. We only need to make changes on the server:
 
@@ -245,6 +252,7 @@ root@myserver:/etc$ vi rssh.conf
 Then uncomment the allow* lines to set up specific process types. For sftp, we need to uncomment the line:
 
  '# allowsftp'
+ 'allowsftp'
 
 Also, the chrootpath should be set to '/home/bob'.
 
@@ -264,35 +272,50 @@ Before using this script, check the paths somewhere down the middle are correct.
 
  'rssh -v'
 
-If things are ok, let's jail /home/bob, make it a chrooted directory, add rssh as a valid shell and setuid the chroot helper as root (wew!):
+If things are ok, let's get started. The commands do the following:
+
+ # User bob gets the rssh shell
+ # The mkchroot.sh script is made executable and executed for the /home/bob directory.
+ # The rssh shell is added to the list of valid shells
+ # The chroot helper is setuid to root (ubuntu has alternative setup possibility through "dpkg-reconfigure rssh")
 
 {{{
+root@myserver:/home/bob$ usermod -s /usr/bin/rssh bob
 root@myserver:/home/bob$ chmod u+x mkchroot.sh
 root@myserver:/home/bob$ ./mkchroot.sh /home/bob
-root@myserver:/home/bob$ add-shell rssh
+root@myserver:/home/bob$ add-shell /usr/bin/rssh
 root@myserver:/home/bob$ chmod u+s /usr/lib/rssh/rssh_chroot_helper
-root@myserver:/home/bob$ ln /home/bob/usr/lib/openssh/sftp-server /home/bob/usr/lib/
 }}}
 
-Next, change bob to use the rssh shell:
+So, you've now got two files: The chrooted one now has a copy of passwd, but it has too many entries that are totally unnecessary. You should be able to just maintain the line: 
+
+ 'bob:x:9999:9999::/home/bob:/usr/bin/rssh'
+
+Ok, so let's do some other validation checks at this point:
 
 {{{
-root@myserver:/home/bob$ cd etc
-root@myserver:/home/bob/etc$ vi passwd
-root@myserver:/home/bob$ cd etc
-root@myserver:/etc$ vi passwd
-root@myserver:/etc$ /etc/init.d/ssh reload
+alice@myclient:~$ sftp bob@myserver
+Connecting to myserver...
+sftp> exit
+alice@myclient:~$ ssh bob@myserver
+<motd blurb>
+This account is restricted by rssh.
+Allowed commands: sftp 
+
+If you believe this is in error, please contact your system administrator.
+
+Connection to localhost closed.
+alice@myclient:~$ 
 }}}
 
-Yes, this happens in two files. The chrooted one now has a copy, where the line: 
+and from any other user:
 
- 'bob:x:1111:1111::/home/bob:/bin/bash'
+{{{
+anyuser@myclient:~$ sftp bob@myserver
+Connecting to myserver...
+bob@myserver's password: 
+sftp> 
+}}}
 
-should read:
-
- 'bob:x:1111:1111::/home/bob:/usr/bin/rssh'
-
-
-
-
+So it does request a password. You could also set 'PasswordAuthentication no' in the sshd_config file if you only want people to be able to login through the key authentication method. There are plenty of other tweaks possible that are far beyond the scope of this installation manual. You should be able to find lots of information about those.
 
