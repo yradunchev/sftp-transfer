@@ -63,6 +63,7 @@ do
 
 	if [ "${RETVAL}" -eq "0" ]; then
 		# file is in use, so don't copy yet.
+		echo "File $file is still in use, deferring the transfer for that file."
 		continue
 	fi
 
