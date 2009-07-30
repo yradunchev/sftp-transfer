@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # $LastChangedDate$
-# $Rev$
+# $Revision$
 
 # Checking for errors function
 check_error() {
