@@ -557,6 +557,10 @@ alice@myclient:~$ ls log/*
 < log files created every minute >
 zoe@myserver:~$ ls log/*
 < log files created every minute >
+
 }}}
+
+_*Don't forget to modify the crontab settings for the required frequency.*_.
+
 
 *DONE!*
