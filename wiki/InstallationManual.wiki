@@ -278,7 +278,10 @@ If things are ok, let's get started. The commands do the following:
 
  # User bob gets the rssh shell
  # The mkchroot.sh script is made executable and executed for the /home/bob directory.
- # We're creating a files directory 'uploads' inside the /home/bob directory. This creates /home/bob/uploads to contain uploads
+ # We're creating a directory 'home/bob' inside the /home/bob directory.
+ # The /etc/passwd is modified, such that bob's homedrive is now within the chroot jail.
+ # We should create the new chroot'ed home dir for bob.
+ # Since the home dir changed, the .ssh for login validation moves along to accomodate that change.
  # The rssh shell is added to the list of valid shells
  # The chroot helper is setuid to root (ubuntu has alternative setup possibility through "dpkg-reconfigure rssh")
 
@@ -289,9 +292,14 @@ root@myserver:/home/bob$ ./mkchroot.sh /home/bob
 root@myserver:/home/bob$ vi /home/bob/etc/passwd
 ( see comments below. Remove all lines except bob, verify the shell and modify /home/bob to /files. You should be able to just maintain:
 
- 'bob:x:9999:9999::/uploads:/usr/bin/rssh'
+ 'bob:x:9999:9999::/home/bob:/usr/bin/rssh'
 
-root@myserver:/home/bob$ mkdir uploads
+root@myserver:/home/bob$ vi /etc/passwd
+
+ 'bob:x:9999:9999::/home/bob/home/bob:/usr/bin/rssh'
+
+root@myserver:/home/bob$ mkdir -p /home/bob/home/bob
+root@myserver:/home/bob$ mv .ssh/ home/bob
 root@myserver:/home/bob$ add-shell /usr/bin/rssh
 root@myserver:/home/bob$ chmod u+s /usr/lib/rssh/rssh_chroot_helper
 }}}
