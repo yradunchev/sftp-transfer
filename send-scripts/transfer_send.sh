@@ -46,7 +46,7 @@ rm -f $LOCALDIR/control/*
 for file in `find $OUTBOX -type f`
 do
 	FILENAME=`basename "$file"`
-	mv $file $PROCDIR/$FILENAME
+	mv -f $file $PROCDIR/$FILENAME
 	touch $CONTROLDIR/control_$FILENAME
 	cat > $CONTROLDIR/commands_$FILENAME << UNTIL_THIS_TOKEN
 cd $REMOTEDIR
@@ -79,19 +79,19 @@ do
 		# Something went wrong with the SFTP operation
 		# Move processing file to error dir.
 		echo "moving $PROCDIR/$FILENAME to $ERRORDIR/" 
-		mv "$PROCDIR/$FILENAME" "$ERRORDIR/"
+		mv -f "$PROCDIR/$FILENAME" "$ERRORDIR/"
 
 		# Indicate there were errors
 		script_ret_val=1
 	else
 		# File successfully transferred. Move file to archive dir
 		echo "removing $PROCDIR/$FILENAME"
-		mv "$PROCDIR/$FILENAME" "$ARCHIVEDIR/"
+		mv -f "$PROCDIR/$FILENAME" "$ARCHIVEDIR/"
 	fi
 
 	# Remove control files
-	rm "$CONTROLDIR/control_$FILENAME"
-	rm "$CONTROLDIR/commands_$FILENAME"
+	rm -f "$CONTROLDIR/control_$FILENAME"
+	rm -f "$CONTROLDIR/commands_$FILENAME"
 
 done
 
