@@ -239,6 +239,8 @@ So you could secure the account further using a jail (chroot), such that the log
 
 I've got this method from: http://ubuntuforums.org/showthread.php?t=128206
 
+A slightly alternative method is here: http://ubuntuforums.org/showthread.php?t=1057657
+
 The following changes are quite specific for this setup and Ubuntu, so it's very likely it won't work for your machine. I hope there are other tutorials on chroot-ing sftp for your setup that you can use in that case.
 
 Let's get started on this. Assuming you're not using specific configurations for rssh already, let's create a backup first and start editing it. We only need to make changes on the server:
@@ -276,6 +278,7 @@ If things are ok, let's get started. The commands do the following:
 
  # User bob gets the rssh shell
  # The mkchroot.sh script is made executable and executed for the /home/bob directory.
+ # We're creating a files directory 'uploads' inside the /home/bob directory. This creates /home/bob/uploads to contain uploads
  # The rssh shell is added to the list of valid shells
  # The chroot helper is setuid to root (ubuntu has alternative setup possibility through "dpkg-reconfigure rssh")
 
@@ -283,15 +286,45 @@ If things are ok, let's get started. The commands do the following:
 root@myserver:/home/bob$ usermod -s /usr/bin/rssh bob
 root@myserver:/home/bob$ chmod u+x mkchroot.sh
 root@myserver:/home/bob$ ./mkchroot.sh /home/bob
+root@myserver:/home/bob$ vi /home/bob/etc/passwd
+( see comments below. Remove all lines except bob, verify the shell and modify /home/bob to /files. You should be able to just maintain:
+
+ 'bob:x:9999:9999::/uploads:/usr/bin/rssh'
+
+root@myserver:/home/bob$ mkdir uploads
 root@myserver:/home/bob$ add-shell /usr/bin/rssh
 root@myserver:/home/bob$ chmod u+s /usr/lib/rssh/rssh_chroot_helper
 }}}
 
-So, you've now got two files: The chrooted one now has a copy of passwd, but it has too many entries that are totally unnecessary. You should be able to just maintain the line: 
+We've now made a number of changes to the system. Before attempting the log in, let's ensure that we're getting error output to the syslog, just in case something failed. For this reason, we're using an "-a" flag on the syslog, which opens another _socket_ that the system logger will listen to. See 'man sysklogd' for details. The configuration for the sysklogd on Ubuntu is done through /etc/default. Other locations may exist on other distributions.
 
- 'bob:x:9999:9999::/home/bob:/usr/bin/rssh'
+*careful! any mistakes made here can mess up your system!*
 
-Ok, so let's do some other validation checks at this point:
+{{{
+root@myserver:/home/bob$ cd /etc/default
+root@myserver:/etc/default$ vi syslogd
+}}}
+
+Then search for the line:
+
+ 'SYSLOGD=""'
+
+( you actually may have something in there. If so, just append the following terms) and change it to:
+
+ 'SYSLOGD="-a /home/bob/dev/log"'
+
+Then restart sysklogd:
+
+ 'root@myserver:/etc/default$ /etc/init.d/sysklogd restart'
+
+Now, let's see if syslog is working and at the same time test our setup. Let the root shell tail on the syslog file and attempt a login:
+
+{{{
+root@myserver:/etc/default$ cd /var/log
+root@myserver:/etc/default$ tail -f syslog
+}}}
+
+From another shell, become alice and sftp in:
 
 {{{
 alice@myclient:~$ sftp bob@myserver
@@ -317,5 +350,8 @@ bob@myserver's password:
 sftp> 
 }}}
 
-So it does request a password. You could also set 'PasswordAuthentication no' in the sshd_config file if you only want people to be able to login through the key authentication method. There are plenty of other tweaks possible that are far beyond the scope of this installation manual. You should be able to find lots of information about those.
+Then check for any messages on the root tail shell. You should just see messages float by which do not indicate any errors.
 
+Other users can still log in because the system also allows password authentication. You could set 'PasswordAuthentication no' in the sshd_config file to disable this if you only want people to be able to login through the key authentication method. 
+
+There are plenty of other tweaks possible that are far beyond the scope of this installation manual. You should be able to find lots of information about those.
