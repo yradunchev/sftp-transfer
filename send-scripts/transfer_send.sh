@@ -45,6 +45,15 @@ rm -f $LOCALDIR/control/*
 # check what is to be sent. Set up control file and command file for sftp
 for file in `find $OUTBOX -type f`
 do
+	lsof -w > /dev/null 2>&1 $file
+	RETVAL=$?
+
+	if [ "${RETVAL}" -eq "0" ]; then
+		# file is in use, so don't copy yet.
+		echo "File $file is still in use, deferring the transfer for that file."
+		continue
+	fi
+
 	FILENAME=`basename "$file"`
 	mv -f $file $PROCDIR/$FILENAME
 	touch $CONTROLDIR/control_$FILENAME
